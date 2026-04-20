@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sisyphus Simulator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body 
+    {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to top, #d7c2a0 0%, #eee5d6 30%, #c8e2f8 100%);
+    }
+
+    .game-wrap {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sky {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, #f7f1e5 0%, #dcedff 55%, #a9d6ff 100%);
+    }
+
+    .sun {
+      position: absolute;
+      top: 60px;
+      right: 100px;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: #ffd56f;
+      box-shadow: 0 0 45px rgba(255, 213, 111, 0.8);
+    }
+
+    .mountain {
+      position: absolute;
+      bottom: 0;
+      left: -10%;
+      width: 140%;
+      height: 76%;
+      background: linear-gradient(135deg, #8f6d5f 0%, #aa8577 38%, #6f4e43 100%);
+      clip-path: polygon(0 100%, 0 86%, 100% 17%, 100% 100%);
+    }
+
+    .path {
+      position: absolute;
+      left: 6%;
+      bottom: 10%;
+      width: 86%;
+      height: 10px;
+      background: rgba(255,255,255,0.15);
+      transform: rotate(-22deg);
+      transform-origin: left center;
+      border-radius: 999px;
+    }
+
+    .peak {
+      position: absolute;
+      top: 16%;
+      right: 11%;
+      color: white;
+      font-weight: bold;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      font-size: 1.1rem;
+    }
+
+    .hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: min(430px, calc(100vw - 40px));
+      background: rgba(255,255,255,0.9);
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+      z-index: 20;
+    }
+
+    .hud h1 {
+      margin: 0 0 8px 0;
+      font-size: 1.85rem;
+      color: #4e342e;
+    }
+
+    .hud p {
+      margin: 6px 0;
+      color: #5d4037;
+      line-height: 1.4;
+    }
+
+    .meter {
+      margin-top: 14px;
+      height: 18px;
+      background: #ddd;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(to right, #f7b24c, #63bb6a);
+      transition: width 0.08s linear;
+    }
+
+    .message {
+      min-height: 50px;
+      margin-top: 12px;
+      font-weight: bold;
+      color: #6d4c41;
+    }
+
+    .counter {
+      margin-top: 8px;
+      font-size: 0.95rem;
+      color: #795548;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 10px;
+      color: #5d4037;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .character-layer {
+      position: absolute;
+      left: 70px;
+      bottom: 76px;
+      width: 820px;
+      height: 420px;
+      z-index: 8;
+      pointer-events: none;
+    }
+
+    .sisyphus-group {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 210px;
+      height: 150px;
+      transition: transform 0.06s linear;
+    }
+
+    .ground-shadow {
+      position: absolute;
+      width: 140px;
+      height: 16px;
+      background: rgba(0,0,0,0.18);
+      border-radius: 50%;
+      left: 20px;
+      bottom: -4px;
+      filter: blur(4px);
+    }
+
+    .rock {
+      position: absolute;
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      left: 118px;
+      top: 16px;
+      background: radial-gradient(circle at 30% 30%, #a7a7a7 0%, #7d7d7d 45%, #4d4d4d 100%);
+      box-shadow: inset -8px -10px 14px rgba(0,0,0,0.25);
+      transform-origin: center center;
+    }
+
+    .rock::before,
+    .rock::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .rock::before {
+      width: 18px;
+      height: 14px;
+      top: 14px;
+      left: 18px;
+    }
+
+    .rock::after {
+      width: 12px;
+      height: 10px;
+      bottom: 16px;
+      right: 14px;
+    }
+
+    .person {
+      position: absolute;
+      left: 34px;
+      top: 24px;
+      width: 105px;
+      height: 105px;
+      transform-origin: 60% 70%;
+    }
+
+    .head {
+      position: absolute;
+      width: 21px;
+      height: 21px;
+      border-radius: 50%;
+      background: #f1c27d;
+      top: 0;
+      left: 18px;
+    }
+
+    .torso {
+      position: absolute;
+      width: 15px;
+      height: 36px;
+      background: #263238;
+      top: 18px;
+      left: 24px;
+      border-radius: 10px;
+      transform: rotate(-18deg);
+      transform-origin: top center;
+    }
+
+    .arm1, .arm2, .leg1, .leg2 {
+      position: absolute;
+      background: #263238;
+      border-radius: 10px;
+      transform-origin: top left;
+    }
+
+    .arm1 {
+      width: 38px;
+      height: 8px;
+      top: 24px;
+      left: 30px;
+      transform: rotate(-16deg);
+    }
+
+    .arm2 {
+      width: 32px;
+      height: 8px;
+      top: 35px;
+      left: 28px;
+      transform: rotate(28deg);
+    }
+
+    .leg1 {
+      width: 38px;
+      height: 8px;
+      top: 56px;
+      left: 18px;
+      transform: rotate(30deg);
+    }
+
+    .leg2 {
+      width: 36px;
+      height: 8px;
+      top: 58px;
+      left: 22px;
+      transform: rotate(78deg);
+    }
+
+    .space-hint {
+      position: absolute;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.92);
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-weight: bold;
+      color: #5d4037;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+      z-index: 20;
+    }
+
+    .top-message {
+      position: absolute;
+      top: 110px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(70, 40, 30, 0.88);
+      color: white;
+      padding: 14px 22px;
+      border-radius: 16px;
+      font-weight: bold;
+      font-size: 1.05rem;
+      z-index: 30;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      text-align: center;
+      max-width: 80vw;
+    }
+
+    .top-message.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrap">
+    <div class="sky"></div>
+    <div class="sun"></div>
+    <div class="mountain"></div>
+    <div class="path"></div>
+    <div class="peak"><img id="statue" src="""></div>
+ 
+    <div class="hud">
+      <h1>Sisyphus Simulator</h1>
+      <p>Press the <strong>space bar</strong> to push the rock uphill.</p>
+      <p>If you stop for more than <strong>1 second</strong>, you start sliding back.</p>
+
+      <div class="meter">
+        <div class="meter-fill" id="meterFill"></div>
+      </div>
+
+      <div class="message" id="message">Begin your endless struggle.</div>
+      <div class="counter" id="counter">Pushes: 0 | Resets: 0</div>
+
+      <a class="back-link" href="index.html">Back to Home</a>
+    </div>
+
+    <div class="top-message" id="topMessage">
+      you really thought it would be this easy? Keep going peasant!
+    </div>
+
+    <div class="character-layer">
+      <div class="sisyphus-group" id="group">
+        <div class="ground-shadow"></div>
+        <div class="person" id="person">
+          <div class="head"></div>
+          <div class="torso" id="torso"></div>
+          <div class="arm1" id="arm1"></div>
+          <div class="arm2" id="arm2"></div>
+          <div class="leg1" id="leg1"></div>
+          <div class="leg2" id="leg2"></div>
+        </div>
+        <div class="rock" id="rock"></div>
+      </div>
+    </div>
+
+    <div class="space-hint">Press SPACE to push</div>
+  </div>
+
+  <script>
+    const group = document.getElementById("group");
+    const rock = document.getElementById("rock");
+    const person = document.getElementById("person");
+    const torso = document.getElementById("torso");
+    const arm1 = document.getElementById("arm1");
+    const arm2 = document.getElementById("arm2");
+    const leg1 = document.getElementById("leg1");
+    const leg2 = document.getElementById("leg2");
+    const meterFill = document.getElementById("meterFill");
+    const message = document.getElementById("message");
+    const counter = document.getElementById("counter");
+    const topMessage = document.getElementById("topMessage");
+
+    let progress = 0;
+    let pushes = 0;
+    let resets = 0;
+    let rockRotation = 0;
+    let stepPhase = 0;
+    let falling = false;
+    let summitLock = false;
+    let lastPressTime = 0;
+
+    const maxProgress = 100;
+    const pushAmount = 2.5;
+    const slideRate = 0.06; // per frame after idle
+    const hardFallRate = 0.22; // after summit
+    const idleThreshold = 1000;
+
+    function updateCounter() {
+      counter.textContent = `Pushes: ${pushes} | Resets: ${resets}`;
+    }
+
+    function applyPose(mode = "push") {
+      if (mode === "push") {
+        const legSwing = stepPhase === 0 ? 32 : 42;
+        const backLegSwing = stepPhase === 0 ? 78 : 68;
+
+        person.style.transform = "rotate(-8deg)";
+        torso.style.transform = "rotate(-24deg)";
+        arm1.style.transform = "rotate(-18deg)";
+        arm2.style.transform = "rotate(22deg)";
+        leg1.style.transform = `rotate(${legSwing}deg)`;
+        leg2.style.transform = `rotate(${backLegSwing}deg)`;
+      } else if (mode === "slide") {
+        person.style.transform = "rotate(6deg)";
+        torso.style.transform = "rotate(-10deg)";
+        arm1.style.transform = "rotate(-4deg)";
+        arm2.style.transform = "rotate(42deg)";
+        leg1.style.transform = "rotate(55deg)";
+        leg2.style.transform = "rotate(92deg)";
+      } else if (mode === "summit") {
+        person.style.transform = "rotate(12deg)";
+        torso.style.transform = "rotate(4deg)";
+        arm1.style.transform = "rotate(18deg)";
+        arm2.style.transform = "rotate(58deg)";
+        leg1.style.transform = "rotate(68deg)";
+        leg2.style.transform = "rotate(105deg)";
+      }
+    }
+
+    function updatePosition() {
+      const x = progress * 5.4;
+      const y = progress * 2.02;
+      group.style.transform = `translate(${x}px, -${y}px)`;
+      meterFill.style.width = `${progress}%`;
+      rock.style.transform = `rotate(${rockRotation}deg)`;
+    }
+
+    function setMessageByProgress() {
+      if (summitLock) return;
+
+      if (falling && progress > 0) {
+        message.textContent = "You hesitated. The mountain noticed.";
+      } else if (progress < 20) {
+        message.textContent = "The rock is moving. Slowly.";
+      } else if (progress < 45) {
+        message.textContent = "You strain forward and gain ground.";
+      } else if (progress < 70) {
+        message.textContent = "Your legs burn, but the summit looks closer.";
+      } else if (progress < 100) {
+        message.textContent = "Almost there. Keep pushing.";
+      } else {
+        message.textContent = "You made it... or did you?";
+      }
+    }
+
+    function pushUp() {
+      if (summitLock) return;
+
+      const now = Date.now();
+      lastPressTime = now;
+      falling = false;
+
+      pushes++;
+      progress += pushAmount;
+      if (progress > maxProgress) progress = maxProgress;
+
+      rockRotation += 18;
+      stepPhase = 1 - stepPhase;
+
+      applyPose("push");
+      updatePosition();
+      updateCounter();
+      setMessageByProgress();
+
+      if (progress >= 100) {
+        reachTop();
+      }
+    }
+
+    function reachTop() {
+      summitLock = true;
+      topMessage.classList.add("show");
+      message.textContent = "The mountain rejects your victory.";
+      applyPose("summit");
+
+      setTimeout(() => {
+        topMessage.classList.remove("show");
+        falling = true;
+      }, 1700);
+    }
+
+    function animate() {
+      const now = Date.now();
+
+      if (!summitLock) {
+        if (progress > 0 && now - lastPressTime > idleThreshold) {
+          falling = true;
+        }
+
+        if (falling && progress > 0) {
+          progress -= slideRate * 3.2;
+          if (progress < 0) progress = 0;
+          rockRotation -= 3.2;
+          applyPose("slide");
+          updatePosition();
+          setMessageByProgress();
+        }
+      } else {
+        if (progress > 0) {
+          progress -= hardFallRate * 3.4;
+          if (progress < 0) progress = 0;
+          rockRotation -= 10;
+          applyPose("slide");
+          updatePosition();
+        } else {
+          summitLock = false;
+          falling = false;
+          resets++;
+          updateCounter();
+          message.textContent = "Again. Push the rock back up.";
+          lastPressTime = Date.now();
+          applyPose("push");
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        pushUp();
+      }
+    });
+
+    applyPose("push");      
+    updatePosition();
+    updateCounter();
+    lastPressTime = Date.now();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
